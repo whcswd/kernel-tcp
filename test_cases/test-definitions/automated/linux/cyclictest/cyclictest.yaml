@@ -1,0 +1,57 @@
+metadata:
+    name: cyclictest
+    format: "Lava-Test Test Definition 1.0"
+    description: "cyclictest measures event latency in Linux kernel by
+                  measuring the amount of time that passes between when a timer
+                  expires and when the thread which set the timer actually
+                  runs."
+    maintainer:
+        - chase.qi@linaro.org
+    os:
+        - debian
+        - ubuntu
+        - fedora
+        - centos
+        - openembedded
+    scope:
+        - performance
+        - preempt-rt
+    environment:
+        - lava-test-shell
+    devices:
+        - hi6220-hikey
+        - apq8016-sbc
+        - mustang
+        - moonshot
+        - thunderX
+        - d03
+        - d05
+
+params:
+    # Priority of highest prio thread.
+    PRIORITY: "98"
+    # Base interval of thread in us.
+    INTERVAL: "1000"
+    # Number of threads.
+    THREADS: "1"
+    # Set the affinity
+    AFFINITY: "0"
+    # Execute cyclictest for given time
+    DURATION: "5m"
+    # Dump a latency histogram after the run, max latency in us.
+    HISTOGRAM: ""
+    # Background workload to be run during the meassurement
+    BACKGROUND_CMD: ""
+    # Specify url and token for publishing artifacts.
+    # For safety reasons, please set 'ARTIFACTORIAL_TOKEN' variable in job definition with
+    # 'secrets' dictionary, and set job visibility to personal or group.
+    # Refer to https://validation.linaro.org/static/docs/v2/publishing-artifacts.html
+    ARTIFACTORIAL_URL: "https://archive.validation.linaro.org/artifacts/team/qa/"
+    ARTIFACTORIAL_TOKEN: ""
+
+run:
+    steps:
+        - cd ./automated/linux/cyclictest/
+        - ./cyclictest.sh -D "${DURATION}" -p "${PRIORITY}" -i "${INTERVAL}" -t "${THREADS}" -a "${AFFINITY}" -h "${HISTOGRAM}" -w "${BACKGROUND_CMD}"
+        - ../../utils/upload-to-artifactorial.sh -a "output/cyclictest.json" -u "${ARTIFACTORIAL_URL}" -t "${ARTIFACTORIAL_TOKEN}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

@@ -1,0 +1,95 @@
+{# -*- mode: yaml -*- -#}
+
+# KernelCI API & Pipeline experiments
+#
+# This is a work-in-progress template to add LAVA support with the new KernelCI
+# API & Pipeline.
+#
+# Things left to add:
+# * instance name (staging, AKS...)
+# * priority
+# * timeout
+# * modules
+# * kernel image name
+# * UEFI binaries for QEMU etc.
+# * rootfs URL
+# * Docker image for QEMU
+
+job_name: "[{{ instanceid|default('KernelCI AKS')}}] {{ node.id }} {{ node.name }} {{ node.revision.describe }}"
+
+device_type: {{ platform_config.base_name }}
+
+visibility: public
+
+priority: medium
+
+{% if platform_config.context %}
+context:{% for key, value in platform_config.context | items %}
+  {{ key }}: {{ value }}{% endfor %}
+{% endif %}
+
+timeouts:
+  action:
+    minutes: 10
+  actions:
+    power-off:
+      seconds: 30
+  job:
+    minutes: 10
+  queue:
+    days: 2
+
+{% if notify %}
+notify:
+  callback:
+    content-type: {{ notify.callback['content-type']|default('json') }}
+    dataset: {{ notify.callback.dataset|default('all') }}
+    method: {{ notify.callback.method|default('POST') }}
+    {%- if notify.callback.token %}
+    token: {{ notify.callback.token }}
+    {%- endif %}
+    {%- if notify.callback.url %}
+    url: {{ notify.callback.url }}/node/{{ node.id }}
+    {%- else %}{{ kci_raise("Callback URL not provided") }}{%- endif %}
+  criteria:
+    status: finished
+{% endif %}
+
+metadata:
+  node_id: {{ node.id }}
+  # The full YAML configuration can't yet be added as-is, only strings and
+  # integers are accepted by the schema.  See this issue for more details:
+  # https://git.lavasoftware.org/lava/lava/-/issues/610
+  api_config_name: {{ api_config.name }}
+  storage_config_name: {{ storage_config.name }}
+
+actions:
+{% set boot_template = 'boot/' + platform_config.boot_method + '.jinja2' %}
+{% include boot_template %}
+
+- test:
+    definitions:
+    - from: inline
+      lava-signal: kmsg
+      name: dmesg
+      path: inline/dmesg.yaml
+      repository:
+        metadata:
+          description: baseline test plan
+          environment:
+            - lava-test-shell
+          format: Lava-Test Test Definition 1.0
+          name: baseline
+          os:
+            - debian
+          scope:
+            - functional
+        run:
+          steps:
+            - |
+{%- filter indent(width=16) -%}
+{% block commands %}{% endblock %}
+{%- endfilter %}
+
+    timeout:
+      minutes: 1

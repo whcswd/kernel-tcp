@@ -1,0 +1,58 @@
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: piglit
+    description: "Piglit is an open-source test suite for OpenGL implementations.
+                  For more information: https://piglit.freedesktop.org/"
+    maintainer:
+        - anibal.limon@linaro.org
+    os:
+        - debian
+        - ubuntu
+        - centos
+        - fedora
+        - openembedded
+    scope:
+        - functional
+    devices:
+        - dragonboard410c
+
+# Exclude via OPTIONS:
+# * glx, because those are driver specific
+# * streaming-texture-leak, because it needs swap, not readily available
+params:
+    DISPLAY: ":0"
+    PIGLIT_SOURCE_DIR: "/usr/lib64/piglit"
+    OPTIONS: "-x streaming-texture-leak -x glx"
+    SUITE: "tests/quick.py"
+    USE_XVFB: "False"
+    IGNORE_TESTS_REPO: ""
+    IGNORE_TESTS_BRANCH: "master"
+    IGNORE_TESTS_FILE: ""
+
+run:
+    steps:
+        - . ./automated/lib/sh-test-lib
+        - install_deps piglit
+        - if [ "${USE_XVFB}" = "True" ]; then
+        -     install_deps xvfb
+        -     export DISPLAY=:9
+        -     Xvfb ${DISPLAY} -screen 0 1920x1080x24 &
+        - else
+        -     export DISPLAY=${DISPLAY}
+        - fi
+        - export PIGLIT_SOURCE_DIR=${PIGLIT_SOURCE_DIR}
+        - cd ./automated/linux/piglit
+        - IGNORE_FILE=""
+        - if [ ! -z "${IGNORE_TESTS_REPO}" ] && [ ! -z "${IGNORE_TESTS_FILE}" ]; then
+        -     repo_path=${PWD}/$(basename ${IGNORE_TESTS_REPO})
+        -     git clone -b ${IGNORE_TESTS_BRANCH} ${IGNORE_TESTS_REPO} ${repo_path}
+        -     IGNORE_FILE=${repo_path}/${IGNORE_TESTS_FILE}
+        - fi
+        - piglit run ${OPTIONS} ${PIGLIT_SOURCE_DIR}/${SUITE} ./results
+        - if [ -f ./results/results.json.bz2 ]; then
+        -     bzip2 -d ./results/results.json.bz2
+        -     ./piglit_lava_parse.py ./results/results.json ${IGNORE_FILE} > ./result.txt
+        - else
+        -     ./piglit_lava_parse.py ./results/tests ${IGNORE_FILE} > ./result.txt
+        - fi
+        - ../../utils/send-to-lava.sh ./result.txt

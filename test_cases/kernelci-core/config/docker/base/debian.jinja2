@@ -1,0 +1,31 @@
+{#
+ # SPDX-License-Identifier: LGPL-2.1-or-later
+ #
+ # Copyright (C) 2021, 2022 Collabora Limited
+ # Author: Guillaume Tucker <guillaume.tucker@collabora.com>
+ # Author: Alexandra Pereira <alexandra.pereira@collabora.com>
+-#}
+
+FROM debian:bullseye
+MAINTAINER "KernelCI TSC" <kernelci-tsc@groups.io>
+ENV DEBIAN_FRONTEND=noninteractive
+
+{%- block multistage %}{% endblock %}
+
+# Docker for jenkins really needs procps otherwise the jenkins side fails
+RUN apt-get update && apt-get install --no-install-recommends -y procps
+
+# SSL / HTTPS support
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    apt-transport-https \
+    ca-certificates
+
+{%- block packages %}{% endblock %}
+
+{%- block fragments %}
+{%- for fragment in fragments %}
+{% with is_debian = true, sub_arch = sub_arch %}
+{% include fragment %}
+{%- endwith %}
+{%- endfor %}
+{%- endblock %}

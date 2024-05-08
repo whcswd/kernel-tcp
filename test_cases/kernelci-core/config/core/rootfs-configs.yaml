@@ -1,0 +1,429 @@
+rootfs_configs:
+  bookworm-kselftest:
+    rootfs_type: debos
+    debian_release: bookworm
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - alsa-utils
+      - bc
+      - ca-certificates
+      - iproute2
+      - iputils-ping
+      - jdim
+      - jq
+      - libasound2
+      - libatm1
+      - libcap2-bin
+      - libelf1
+      - libgdbm-compat4
+      - libgdbm6
+      - libhugetlbfs0
+      - libmnl0
+      - libnuma1
+      - libpam-cap
+      - libpcre2-8-0
+      - libperl5.36
+      - libpsl5
+      - libxtables12
+      - netbase
+      - openssl
+      - perl
+      - perl-modules-5.36
+      - procps
+      - publicsuffix
+      - python3-minimal
+      - python3-unittest2
+      - socat
+      - tcpdump
+      - tpm2-tools
+      - wget
+      - xz-utils
+    script: "scripts/bookworm-kselftest.sh"
+
+  buildroot-baseline:
+    rootfs_type: buildroot
+    git_url: https://github.com/kernelci/buildroot
+    git_branch: main
+    arch_list:
+      - arc
+      - arm64
+      - arm64be
+      - armeb
+      - armel
+      - mipsel
+      - riscv
+      - x86
+    frags:
+      - baseline
+
+  bullseye:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armel
+      - armhf
+      - i386
+      - mips64el
+      - mipsel
+    extra_packages:
+      - isc-dhcp-client
+    extra_packages_remove: &extra_packages_remove_bullseye
+      - bash
+      - e2fslibs
+      - e2fsprogs
+      - klibc-utils
+      - libext2fs2
+      - libgnutls30
+      - libklibc
+      - libncursesw6
+      - libp11-kit0
+      - libunistring2
+      - sensible-utils
+    extra_files_remove: &extra_files_remove_bullseye
+      - '*networkd*'
+      - '*resolved*'
+      - nosuspend.conf
+      - tar
+      - patch
+      - dir
+      - partx
+      - find
+    script: "scripts/install-bootrr.sh"
+    test_overlay: "overlays/baseline"
+
+  bullseye-cros-ec:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - python3-minimal
+      - python3-unittest2
+      - tzdata
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+      - libext2fs2
+    extra_firmware:
+      - mrvl/pcieusb8997_combo_v4.bin
+      - mrvl/sd8897_uapsta.bin
+      - qca/rampatch_00440302.bin
+      - rtl_nic/rtl8153b-2.fw
+      - rockchip/dptx.bin
+    linux_fw_version: d526e044bddaa2c2ad855c7296147e49be0ab03c
+    script: "scripts/bullseye-cros-ec-tests.sh"
+    test_overlay: ""
+
+  bullseye-gst-fluster:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+      - klibc-utils
+      - libext2fs2
+      - libgnutls30
+      - libklibc
+      - libncursesw6
+      - libp11-kit0
+      - libunistring2
+      - sensible-utils
+    extra_packages:
+      - ca-certificates
+      - libgbm1
+      - libdrm2
+      - libva2
+      - libva-drm2
+      - libwayland-server0
+      - libxau6
+      - libxcb1
+      - libxdmcp6
+      - mesa-va-drivers
+      - python3-requests
+      - python3-yaml
+      - unzip
+      - wget
+    script: "scripts/bullseye-gst-fluster.sh"
+    test_overlay: "overlays/fluster"
+    imagesize: 2GB
+    debos_memory: 8G
+
+  bullseye-igt:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+        - amd64
+        - arm64
+        - armhf
+    extra_packages:
+        - libcairo2
+        - libdw1
+        - libglib2.0-0
+        - libpciaccess0
+        - libprocps8
+        - libudev1
+        - libunwind8
+    extra_packages_remove:
+        - bash
+        - e2fslibs
+        - e2fsprogs
+        - fonts-dejavu-core
+        - klibc-utils
+        - libext2fs2
+        - libgio3.0-cil
+        - libgnutls30
+        - libklibc
+        - libncursesw6
+        - libp11-kit0
+        - libunistring2
+        - libx11-data
+        - sensible-utils
+    extra_files_remove:
+        - '*networkd*'
+        - '*resolved*'
+        - tar
+        - patch
+        - diff
+        - dir
+        - partx
+        - find
+    extra_firmware:
+        - amdgpu/stoney_ce.bin
+        - amdgpu/stoney_me.bin
+        - amdgpu/stoney_mec.bin
+        - amdgpu/stoney_pfp.bin
+        - amdgpu/stoney_rlc.bin
+        - amdgpu/stoney_sdma.bin
+        - amdgpu/stoney_uvd.bin
+        - amdgpu/stoney_vce.bin
+        - i915/bxt_dmc_ver1_07.bin
+        - i915/kbl_dmc_ver1_04.bin
+        - i915/glk_dmc_ver1_04.bin
+        - qcom/a630_gmu.bin
+        - qcom/a630_sqe.fw
+    linux_fw_version: d526e044bddaa2c2ad855c7296147e49be0ab03c
+    script: "scripts/bullseye-igt.sh"
+    test_overlay: "overlays/igt"
+
+  bullseye-kselftest:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armel
+      - armhf
+    extra_packages:
+      - bc
+      - ca-certificates
+      - iproute2
+      - jdim
+      - libasound2
+      - libatm1
+      - libcap2-bin
+      - libelf1
+      - libgdbm-compat4
+      - libgdbm6
+      - libhugetlbfs0
+      - libmnl0
+      - libnuma1
+      - libpam-cap
+      - libpcre2-8-0
+      - libperl5.32
+      - libpsl5
+      - libxtables12
+      - netbase
+      - openssl
+      - perl
+      - perl-modules-5.32
+      - procps
+      - publicsuffix
+      - python3-minimal
+      - python3-unittest2
+      - tpm2-tools
+      - wget
+      - xz-utils
+
+  bullseye-libcamera:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - libevent-dev
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+    script: "scripts/bullseye-libcamera.sh"
+    test_overlay: "overlays/libcamera"
+
+  bullseye-libhugetlbfs:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - python-is-python2
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+    script: "scripts/bullseye-libhugetlbfs.sh"
+
+  bullseye-ltp:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - dosfstools
+      - gdb-minimal
+      - libnuma-dev
+      - ntfs-3g
+    script: "scripts/bullseye-ltp.sh"
+
+  bullseye-rt:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - libnuma1
+      - procps
+      - python
+    script: "scripts/bullseye-rt.sh"
+
+  bullseye-v4l2:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armhf
+    extra_packages:
+      - libasound2
+      - libelf1
+      - libjpeg62-turbo
+      - libudev1
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+    extra_firmware:
+        - mediatek/mt8173/vpu_d.bin
+        - mediatek/mt8173/vpu_p.bin
+        - mediatek/mt8183/scp.img
+        - mediatek/mt8186/scp.img
+        - mediatek/mt8192/scp.img
+        - mediatek/mt8195/scp.img
+    script: "scripts/bullseye-v4l2.sh"
+    test_overlay: "overlays/v4l2"
+
+  bullseye-vdso:
+    rootfs_type: debos
+    debian_release: bullseye
+    arch_list:
+      - amd64
+      - arm64
+      - armel
+      - armhf
+    extra_packages_remove:
+      - bash
+      - e2fslibs
+      - e2fsprogs
+    script: "scripts/bullseye-vdso.sh"
+
+  sid:
+    rootfs_type: debos
+    debian_release: sid
+    debian_mirror: http://deb.debian.org/debian-ports
+    keyring_package: debian-ports-archive-keyring
+    keyring_file: /usr/share/keyrings/debian-ports-archive-keyring.gpg
+    arch_list:
+      - riscv64
+    extra_packages_remove: &extra_packages_remove_sid
+      - bash
+      - e2fslibs
+      - e2fsprogs
+      - klibc-utils
+      - libext2fs2
+      - libgnutls30
+      - libklibc
+      - libncursesw6
+      - libp11-kit0
+      - sensible-utils
+    extra_files_remove: *extra_files_remove_bullseye
+
+  sid-kselftest:
+    rootfs_type: debos
+    debian_release: sid
+    debian_mirror: http://deb.debian.org/debian-ports
+    keyring_package: debian-ports-archive-keyring
+    keyring_file: /usr/share/keyrings/debian-ports-archive-keyring.gpg
+    arch_list:
+      - riscv64
+    extra_packages:
+      - bc
+      - ca-certificates
+      - iproute2
+      - jdim
+      - libasound2
+      - libatm1
+      - libcap2-bin
+      - libelf1
+      - libgdbm-compat4
+      - libgdbm6
+      - libhugetlbfs0
+      - libmnl0
+      - libnuma1
+      - libpam-cap
+      - libpcre2-8-0
+      - libperl5.36
+      - libpsl5
+      - libxtables12
+      - netbase
+      - openssl
+      - perl
+      - perl-modules-5.36
+      - procps
+      - publicsuffix
+      - python3-minimal
+      - python3-unittest2
+      - tpm2-tools
+      - wget
+      - xz-utils
+
+  sid-ltp:
+    rootfs_type: debos
+    debian_release: sid
+    debian_mirror: http://deb.debian.org/debian-ports
+    keyring_package: debian-ports-archive-keyring
+    keyring_file: /usr/share/keyrings/debian-ports-archive-keyring.gpg
+    arch_list:
+      - riscv64
+    extra_packages:
+      - gdb-minimal
+      - libnuma-dev
+    script: "scripts/bullseye-ltp.sh"

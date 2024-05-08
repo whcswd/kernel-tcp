@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. bootrr
+
+TEST_CASE_ID="$1"
+PARTITION="$2"
+
+if [ -z "${TEST_CASE_ID}" -o -z "${PARTITION}" ]; then
+	echo "Usage: $0 <test-case-id> <partition>"
+	exit 1
+fi
+
+if [ -L /dev/disk/by-partlabel/${PARTITION} ]; then
+	test_report_exit pass
+fi
+
+test_report_exit fail

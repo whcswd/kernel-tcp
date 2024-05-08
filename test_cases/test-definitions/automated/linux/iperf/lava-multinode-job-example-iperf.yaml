@@ -1,0 +1,132 @@
+job_name: lava-multinode-job-example-iperf
+timeouts:
+  job:
+    minutes: 60
+  action:
+    minutes: 3
+  connection:
+    minutes: 5
+priority: medium
+visibility: public
+
+metadata:
+  iperf-version: v3
+
+protocols:
+  lava-multinode:
+    roles:
+      server:
+        device_type: beaglebone-black
+        count: 1
+        essential: True
+        timeout:
+          minutes: 30
+      client:
+        device_type: beaglebone-black
+        count: 1
+        timeout:
+          minutes: 30
+
+actions:
+- deploy:
+    role:
+      - server
+    timeout:
+      minutes: 4
+    to: tftp
+    kernel:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/vmlinuz
+      type: zimage
+    ramdisk:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/initramfs.cpio.gz
+      compression: gz
+      # the bootloader needs a u-boot header on the modified ramdisk
+      add-header: u-boot
+    modules:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/modules.tar.gz
+      compression: gz
+    nfsrootfs:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/jessie-armhf-nfs.tar.gz
+      compression: gz
+    os: debian
+    dtb:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/dtbs/am335x-boneblack.dtb
+
+- deploy:
+    role:
+      - client
+    timeout:
+      minutes: 4
+    to: tftp
+    kernel:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/vmlinuz
+      type: zimage
+    ramdisk:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/initramfs.cpio.gz
+      compression: gz
+      # the bootloader needs a u-boot header on the modified ramdisk
+      add-header: u-boot
+    modules:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/modules.tar.gz
+      compression: gz
+    nfsrootfs:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/jessie-armhf-nfs.tar.gz
+      compression: gz
+    os: debian
+    dtb:
+      url: http://images.validation.linaro.org/snapshots.linaro.org/components/lava/standard/debian/jessie/armhf/4/dtbs/am335x-boneblack.dtb
+
+- boot:
+    role:
+      - server
+    method: u-boot
+    commands: nfs
+    auto_login:
+      login_prompt: 'login:'
+      username: root
+    prompts:
+    - 'root@jessie:'
+    timeout:
+      minutes: 2
+
+- boot:
+    role:
+      - client
+    method: u-boot
+    commands: nfs
+    auto_login:
+      login_prompt: 'login:'
+      username: root
+    prompts:
+    - 'root@jessie:'
+    timeout:
+      minutes: 2
+
+- test:
+    role:
+    - server
+    timeout:
+      minutes: 30
+    definitions:
+    - repository: https://github.com/Linaro/test-definitions.git
+      branch: master
+      from: git
+      path: automated/linux/iperf/iperf-server.yaml
+      name: iperf3-test
+      parameters:
+        SERVER_ETHERNET_DEVICE: eth0
+
+- test:
+    role:
+    - client
+    timeout:
+      minutes: 30
+    definitions:
+    - repository: https://github.com/Linaro/test-definitions.git
+      branch: master
+      from: git
+      path: automated/linux/iperf/iperf-client.yaml
+      name: iperf3-test
+      parameters:
+        AFFINITY: ""
+        REVERSE: ""

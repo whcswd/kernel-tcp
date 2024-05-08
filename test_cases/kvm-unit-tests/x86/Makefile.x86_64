@@ -1,0 +1,66 @@
+cstart.o = $(TEST_DIR)/cstart64.o
+bits = 64
+ldarch = elf64-x86-64
+ifeq ($(CONFIG_EFI),y)
+# Function calls must include the number of arguments passed to the functions
+# More details: https://wiki.osdev.org/GNU-EFI
+CFLAGS += -maccumulate-outgoing-args
+
+exe = efi
+bin = so
+FORMAT = efi-app-x86_64
+cstart.o = $(TEST_DIR)/efi/efistart64.o
+arch_LDFLAGS = ''
+else
+exe = flat
+bin = elf
+arch_LDFLAGS = -m elf_x86_64
+endif
+
+fcf_protection_full := $(call cc-option, -fcf-protection=full,)
+COMMON_CFLAGS += -mno-red-zone -mno-sse -mno-sse2 $(fcf_protection_full)
+
+cflatobjs += lib/x86/setjmp64.o
+cflatobjs += lib/x86/intel-iommu.o
+cflatobjs += lib/x86/usermode.o
+
+tests = $(TEST_DIR)/apic.$(exe) \
+	  $(TEST_DIR)/idt_test.$(exe) \
+	  $(TEST_DIR)/xsave.$(exe) $(TEST_DIR)/rmap_chain.$(exe) \
+	  $(TEST_DIR)/pcid.$(exe) $(TEST_DIR)/debug.$(exe) \
+	  $(TEST_DIR)/ioapic.$(exe) $(TEST_DIR)/memory.$(exe) \
+	  $(TEST_DIR)/pku.$(exe) $(TEST_DIR)/hyperv_clock.$(exe)
+tests += $(TEST_DIR)/syscall.$(exe)
+tests += $(TEST_DIR)/tscdeadline_latency.$(exe)
+tests += $(TEST_DIR)/intel-iommu.$(exe)
+tests += $(TEST_DIR)/vmware_backdoors.$(exe)
+tests += $(TEST_DIR)/rdpru.$(exe)
+tests += $(TEST_DIR)/pks.$(exe)
+tests += $(TEST_DIR)/pmu_lbr.$(exe)
+tests += $(TEST_DIR)/pmu_pebs.$(exe)
+
+ifeq ($(CONFIG_EFI),y)
+tests += $(TEST_DIR)/amd_sev.$(exe)
+endif
+
+# The following test cases are disabled when building EFI tests because they
+# use absolute addresses in their inline assembly code, which cannot compile
+# with the '-fPIC' flag
+ifneq ($(CONFIG_EFI),y)
+tests += $(TEST_DIR)/access_test.$(exe)
+tests += $(TEST_DIR)/svm.$(exe)
+tests += $(TEST_DIR)/svm_npt.$(exe)
+tests += $(TEST_DIR)/vmx.$(exe)
+endif
+
+ifneq ($(fcf_protection_full),)
+tests += $(TEST_DIR)/cet.$(exe)
+endif
+
+include $(SRCDIR)/$(TEST_DIR)/Makefile.common
+
+$(TEST_DIR)/hyperv_clock.$(bin): $(TEST_DIR)/hyperv_clock.o
+
+$(TEST_DIR)/vmx.$(bin): $(TEST_DIR)/vmx_tests.o
+$(TEST_DIR)/svm.$(bin): $(TEST_DIR)/svm_tests.o
+$(TEST_DIR)/svm_npt.$(bin): $(TEST_DIR)/svm_npt.o

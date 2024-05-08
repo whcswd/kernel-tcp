@@ -1,0 +1,23 @@
+#!/bin/sh
+
+. bootrr
+
+TEST_CASE_ID="$1"
+TIMEOUT="${2:-1}"
+
+if [ -z "${TEST_CASE_ID}" ]; then
+	echo "Usage: $0 <test-case-id> [<timeout>]"
+	exit 1
+fi
+
+if [ ! -d /sys/devices/system/cpu/ ]
+then
+	test_report_exit skip
+fi
+
+cd /sys/devices/system/cpu/
+
+timeout ${TIMEOUT} \
+	[ -s offline -a "$(cat online)" = "$(cat possible)" ] && test_report_exit pass
+
+test_report_exit fail

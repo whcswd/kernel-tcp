@@ -1,0 +1,5 @@
+pexpect
+pyyaml
+requests
+pycodestyle
+squad_client>0.5

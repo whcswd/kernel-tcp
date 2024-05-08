@@ -1,0 +1,30 @@
+#!/bin/sh
+
+timeout() {
+	attempts="$1"; shift
+
+	for i in `seq ${attempts}`
+	do
+		"$@" && return 0
+		sleep 1
+	done
+
+	return 1
+}
+
+# Each separate version number must be less than 3 digit wide
+version() {
+    echo "$@" | awk -F. '{ printf("%03d%03d%03d\n", $1,$2,$3); }';
+}
+
+test_report_exit() {
+	TEST_RESULT=$1
+	command -v lava-test-case
+	if [ "$?" -eq 0 ]; then
+		lava-test-case ${TEST_CASE_ID} --result ${TEST_RESULT}
+	else
+		echo "<LAVA_SIGNAL_TESTCASE TEST_CASE_ID=${TEST_CASE_ID} RESULT=${TEST_RESULT}>"
+	fi
+	exit 0
+}
+

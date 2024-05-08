@@ -1,0 +1,50 @@
+#!/usr/bin/env bash
+
+if [ -z "$KUT_STANDALONE" ]; then
+	if [ ! -f config.mak ]; then
+		echo "run ./configure && make first. See ./configure -h"
+		exit 2
+	fi
+	source config.mak
+	source scripts/arch-run.bash
+fi
+
+set_qemu_accelerator || exit $?
+
+qemu=$(search_qemu_binary) ||
+	exit $?
+
+is_pv() {
+	if [ "${1: -7}" = ".pv.bin" ] || [ "${TESTNAME: -3}" = "_PV" ]; then
+		return 0
+	fi
+	return 1
+}
+
+if is_pv && [ "$ACCEL" = "tcg" ]; then
+	echo "Protected Virtualization isn't supported under TCG"
+	exit 2
+fi
+
+if is_pv && [ "$MIGRATION" = "yes" ]; then
+	echo "Migration isn't supported under Protected Virtualization"
+	exit 2
+fi
+
+M='-machine s390-ccw-virtio'
+M+=",accel=$ACCEL$ACCEL_PROPS"
+
+if is_pv; then
+	M+=",confidential-guest-support=pv0"
+fi
+
+command="$qemu -nodefaults -nographic $M"
+if is_pv; then
+	command+=" -object s390-pv-guest,id=pv0"
+fi
+command+=" -chardev stdio,id=con0 -device sclpconsole,chardev=con0"
+command+=" -kernel"
+command="$(panic_cmd) $(migration_cmd) $(timeout_cmd) $command"
+
+# We return the exit code via stdout, not via the QEMU return code
+run_qemu_status $command "$@"

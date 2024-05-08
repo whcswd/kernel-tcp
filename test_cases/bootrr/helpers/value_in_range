@@ -1,0 +1,28 @@
+#!/bin/sh
+
+. bootrr
+
+TEST_CASE_ID="$1"
+LOW="$2"
+HIGH="$3"
+shift 3
+# one or more files to check in batch mode
+LOC="$*"
+
+if [ -z "${TEST_CASE_ID}" -o -z "${LOC}" -o -z "${LOW}" -o -z "${HIGH}" ]; then
+	echo "Usage: $0 <test-case-id> <path> <low> <high> [<timeout>]"
+	exit 1
+fi
+
+for f in ${LOC}; do
+
+	[ -r "${f}" ] || test_report_exit fail
+
+	val=$(cat "${f}")
+	if [ "${val}" -lt "${LOW}" -o "${val}" -gt "${HIGH}" ]; then
+		test_report_exit fail
+	fi
+done
+
+# if we are here, everything is all right!
+test_report_exit pass

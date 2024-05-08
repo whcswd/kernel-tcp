@@ -1,0 +1,28 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Copyright (C) 2021 Foundries.io
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: ota-reboot-verify
+    description: "Verify system booted without upgrade after reboot"
+
+    maintainer:
+        - milosz.wasilewski@foundries.io
+    os:
+        - openembedded
+    scope:
+        - functional
+
+    devices:
+        - imx8mm
+        - imx6ull
+
+params:
+        UBOOT_VAR_TOOL: "fw_printenv"
+        UBOOT_VAR_SET_TOOL: "fw_setenv"
+        TYPE: "kernel"
+        DEBUG: "false"
+run:
+    steps:
+        - cd ./automated/linux/ota-rollback
+        - ./verify-reboot.sh -t "${TYPE}" -u "${UBOOT_VAR_TOOL}" -s "${UBOOT_VAR_SET_TOOL}" -d "${DEBUG}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

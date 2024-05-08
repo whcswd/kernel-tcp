@@ -1,0 +1,55 @@
+#!/usr/bin/env bash
+
+if [ -z "$KUT_STANDALONE" ]; then
+	if [ ! -f config.mak ]; then
+		echo "run ./configure && make first. See ./configure -h"
+		exit 2
+	fi
+	source config.mak
+	source scripts/arch-run.bash
+fi
+
+set_qemu_accelerator || exit $?
+
+qemu=$(search_qemu_binary) ||
+	exit $?
+
+if ! ${qemu} -device '?' 2>&1 | grep -F -e \"testdev\" -e \"pc-testdev\" > /dev/null;
+then
+    echo "No Qemu test device support found"
+    exit 2
+fi
+
+if
+	${qemu} -device '?' 2>&1 | grep -F "pci-testdev" > /dev/null;
+then
+	pci_testdev="-device pci-testdev"
+else
+	pci_testdev=""
+fi
+
+if
+	${qemu} -device '?' 2>&1 | grep -F "pc-testdev" > /dev/null;
+then
+	pc_testdev="-device pc-testdev -device isa-debug-exit,iobase=0xf4,iosize=0x4"
+else
+	pc_testdev="-device testdev,chardev=testlog -chardev file,id=testlog,path=msr.out"
+fi
+
+command="${qemu} --no-reboot -nodefaults $pc_testdev -vnc none -serial stdio $pci_testdev"
+command+=" -machine accel=$ACCEL$ACCEL_PROPS"
+if [ "${CONFIG_EFI}" != y ]; then
+	command+=" -kernel"
+fi
+command="$(timeout_cmd) $command"
+
+if [ "${CONFIG_EFI}" = y ]; then
+	# Set ENVIRON_DEFAULT=n to remove '-initrd' flag for QEMU (see
+	# 'scripts/arch-run.bash' for more details). This is because when using
+	# UEFI, the test case binaries are passed to QEMU through the disk
+	# image, not through the '-kernel' flag. And QEMU reports an error if it
+	# gets '-initrd' without a '-kernel'
+	ENVIRON_DEFAULT=n run_qemu ${command} "$@"
+else
+	run_qemu ${command} "$@"
+fi

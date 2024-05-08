@@ -1,0 +1,36 @@
+metadata:
+    name: docker
+    format: "Lava-Test Test Definition 1.0"
+    description: "Docker smoke test. When docker not pre-installed,
+                  docker-ce will be installed from upstream on supported
+                  distributions."
+    maintainer:
+        - nicolas.dechesne@linaro.org
+        - chase.qi@linaro.org
+    os:
+        - debian
+        - ubuntu
+        - fedora
+        - centos
+    scope:
+        - functional
+    environment:
+        - lava-test-shell
+    devices:
+        - hi6220-hikey
+        - apq8016-sbc
+        - mustang
+        - moonshot
+        - thunderX
+        - d03
+        - d05
+
+params:
+    # Docker image.
+    IMAGE: "aarch64/ubuntu"
+
+run:
+    steps:
+        - cd ./automated/linux/docker/
+        - ./docker.sh -i "${IMAGE}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

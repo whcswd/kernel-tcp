@@ -1,0 +1,61 @@
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: igt-test
+    description: "Run igt-gpu-tools with a given test list"
+    maintainer:
+        - arthur.she@linaro.org
+    os:
+        - debian
+        - ubuntu
+        - openembedded
+    scope:
+        - functional
+    devices:
+        - dragonboard-410c
+        - x15
+
+params:
+    HDMI_DEV_NAME: "HDMI-A-1"
+    IGT_DIR: "/igt-gpu-tools"
+    # TEST_LIST: "CHAMELIUM" will run Chamelium test
+    TEST_LIST: "CHAMELIUM"
+    ARTIFACTORIAL_URL: ""
+    ARTIFACTORIAL_TOKEN: ""
+    CHAMELIUM_PING_RETRY: 2
+
+run:
+    steps:
+        - cd ./automated/linux/igt
+        - OPT="-d ${IGT_DIR} -t ${TEST_LIST}"
+        # Check if the network is available
+        - ifconfig
+        - ping -c 2 www.google.com || lava-test-raise "Target-network-failed"
+        - if [ "${TEST_LIST}" = "CHAMELIUM" ]; then
+        # Reboot Chamelium
+        - echo -e "\nReboot the chamelium\n"
+        - ./control_chamelium.sh ${CHAMELIUM_REBOOT_ARG} || lava-test-raise "CAN-NOT-reboot-Chamelium"; sleep 30
+        # Check if Chamelium is available. ${CHAMELIUM_IP} is from LAVA device dictionary
+        - while [ ${CHAMELIUM_PING_RETRY} -gt 0 ]; do PC=`ping -c 2 ${CHAMELIUM_IP}|grep '100% packet loss'`||true; if [ -n "${PC}" ]; then ./control_chamelium.sh ${CHAMELIUM_REBOOT_ARG}; sleep 30; (( CHAMELIUM_PING_RETRY-- )); else break; fi; done
+        - test -n "${CHAMELIUM_IP}" && test ${CHAMELIUM_PING_RETRY} -gt 0 && lava-test-case "Ping-Chamelium" --result pass || lava-test-raise "Ping-Chamelium"
+        # Check Chamelium uboot console status
+        - ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${CHAMELIUM_IP} /usr/bin/lock_u_boot_console || true
+        # Showing the uptime of Chamelium
+        - ssh -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no root@${CHAMELIUM_IP} /usr/bin/uptime || true
+        - if [ -n "${CHAMELIUM_IP}" ]; then OPT="${OPT} -c ${CHAMELIUM_IP}"; fi
+        - if [ -n "${HDMI_DEV_NAME}" ]; then OPT="${OPT} -h ${HDMI_DEV_NAME}"; fi
+        - fi
+        - ./igt-test.sh ${OPT}
+        # Dump igt test result and upload artifact to Artifactorial
+        - ifconfig; pwd; ls -l
+        - echo "**********************************************";
+        - echo "************ Dump IGT test result ************";
+        - echo "**********************************************";
+        - if [ -f "${IGT_DIR}/results/results.json.bz2" ]; then bunzip2 ${IGT_DIR}/results/results.json.bz2; fi
+        - PYTHONIOENCODING=utf-8  ./print-test-result.py -f ${IGT_DIR}/results/results.json
+        - if [ -n "${ARTIFACTORIAL_TOKEN}" -a -n "${ARTIFACTORIAL_URL}" ]; then
+        - UPLOAD_TOOL="../../utils/upload-to-artifactorial.sh"
+        - if [ -d "/root/dump-frames/" -a -n "`ls /root/dump-frames/`" ];  then echo "Got error frames.." ; tar -C /root -zcf dump-frames.tar.gz dump-frames/;
+        - echo "*********************************************";
+        - echo "************ Upload dump frames *************";
+        - echo "*********************************************";
+        - ${UPLOAD_TOOL} -a "dump-frames.tar.gz" -u "${ARTIFACTORIAL_URL}" -t "${ARTIFACTORIAL_TOKEN}"; fi; fi

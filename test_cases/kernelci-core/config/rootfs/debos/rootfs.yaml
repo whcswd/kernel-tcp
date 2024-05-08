@@ -1,0 +1,199 @@
+{{- $architecture := or .architecture "arm64" -}}
+{{- $basename := or .basename "." -}}
+{{- $extra_packages := or .extra_packages "" -}}
+{{- $extra_firmware := or .extra_firmware "" -}}
+{{- $linux_fw_version := or .linux_fw_version "" -}}
+{{- $suite := or .suite "buster" -}}
+{{- $script := or .script "scripts/nothing.sh" -}}
+{{- $test_overlay := .test_overlay -}}
+{{- $extra_packages_remove := or .extra_packages_remove -}}
+{{- $extra_files_remove := or .extra_files_remove -}}
+{{- $crush_image_options := or .crush_image_options "" -}}
+{{- $debian_mirror := or .debian_mirror "http://deb.debian.org/debian" -}}
+{{- $keyring_package := or .keyring_package "" -}}
+{{- $keyring_file := or .keyring_file "" -}}
+{{- $imagesize := or .imagesize "1GB" -}}
+
+architecture: {{ $architecture }}
+
+actions:
+  - action: debootstrap
+    suite: {{ $suite }}
+    components:
+      - main
+    mirror: {{ $debian_mirror }}
+    variant: minbase
+    keyring-package: {{ $keyring_package }}
+    keyring-file: {{ $keyring_file }}
+
+  - action: apt
+    recommends: false
+    packages:
+      - udev
+      - kmod
+      - dbus
+      - systemd-sysv
+      - diffutils
+      - usbutils
+      - initramfs-tools
+      - patch
+      - systemd-timesyncd
+
+  - action: run
+    description: Build testsuite
+    chroot: true
+    script: {{ $script }}
+
+  - action: run
+    description: Create manifest file
+    chroot: false
+    command: /usr/bin/env python3 ${RECIPEDIR}/scripts/create_manifest.py; rm -f ${ROOTDIR}/test_suites.json
+
+  - action: run
+    chroot: false
+    command: mkdir -p ${ARTIFACTDIR}/{{ $basename -}} ; cp ${ROOTDIR}/build_info.json ${ARTIFACTDIR}/{{ $basename -}}/build_info.json
+
+  - action: run
+    description: Install extra packages
+    chroot: true
+    command: apt-get update && apt-get -y install --no-install-recommends {{ $extra_packages }}
+
+{{ if $extra_firmware }}
+  - action: run
+    description: add firmware files
+    chroot: false
+    script: scripts/install-firmware.sh -f {{ $extra_firmware }} {{ if $linux_fw_version }} -v {{ $linux_fw_version }} {{ end }}
+{{ end }}
+
+  - action: run
+    description: Set hostname
+    chroot: true
+    command: echo debian-{{ $suite }}-{{ $architecture }} > /etc/hostname
+
+  - action: run
+    description: Remove root password
+    chroot: true
+    command: passwd root -d
+
+  - action: overlay
+    description: Tell agetty to log automatically on the serial console
+    source: overlays/auto-login
+
+  - action: overlay
+    description: Change prompt to '$(cwd) # '
+    source: overlays/prompt
+
+  - action: overlay
+    description: Add network configuration
+    source: overlays/networkd
+
+  - action: run
+    description: Setup networking
+    chroot: true
+    script: scripts/setup-networking.sh
+
+  - action: run
+    description: Change root shell to sh as bash will be dropped
+    chroot: true
+    command: chsh -s /bin/sh
+
+  - action: overlay
+    description: Add /var/tmp
+    source: overlays/minimal
+
+  - action: overlay
+    description: Disable suspend in systemd
+    source: overlays/nosuspend
+
+{{ if $test_overlay }}
+  - action: overlay
+    description: Add test overlay {{ $test_overlay }}
+    source: {{ $test_overlay }}
+{{ end }}
+
+  - action: run
+    description: Drop legacy /var/lib/dbus/machine-id generation
+    chroot: true
+    command: rm /usr/lib/tmpfiles.d/dbus.conf
+
+  - action: run
+    description: Set symbolic link to init
+    chroot: true
+    command: ln -s /usr/bin/systemd /init
+
+  - action: run
+    description: Create full archive
+    chroot: false
+    command: cd ${ROOTDIR} ; tar cvfJ  ${ARTIFACTDIR}/{{ $basename -}}/full.rootfs.tar.xz .
+
+  - action: run
+    description: Create full cpio archive
+    chroot: false
+    command: cd ${ROOTDIR} ; find -H  |  cpio -H newc -v -o | gzip -c - > ${ARTIFACTDIR}/{{ $basename -}}/full.rootfs.cpio.gz
+
+  - action: image-partition
+    imagename: rootfs.ext4
+    imagesize: {{ $imagesize }}
+    partitiontype: msdos
+    mountpoints:
+      - mountpoint: /
+        partition: root
+    partitions:
+      - name: root
+        fs: ext4
+        start: 0%
+        end: 100%
+        flags: [ boot ]
+
+  - action: filesystem-deploy
+    description: Deploying filesystem onto image
+
+  - action: run
+    description: Move image to output directory
+    command: mv ${ARTIFACTDIR}/rootfs.ext4 ${ARTIFACTDIR}/{{ $basename -}}/
+    postprocess: true
+
+  - action: run
+    command: xz -f ${ARTIFACTDIR}/{{ $basename -}}/rootfs.ext4
+    postprocess: true
+
+  - action: run
+    description: update-initramfs step
+    chroot: true
+    script: scripts/create_initrd_ramdisk.sh
+
+  - action: run
+    chroot: false
+    command: mv ${ROOTDIR}/boot/initrd.img-min ${ARTIFACTDIR}/{{ $basename -}}/initrd.cpio.gz
+
+  - action: run
+    chroot: true
+    script: scripts/strip.sh "{{ $extra_packages }}"
+
+{{ if $extra_packages_remove }}
+  - action: run
+    description: remove extra packages
+    chroot: true
+    command: dpkg --purge --force-remove-essential --force-depends {{ $extra_packages_remove }}
+{{ end }}
+
+  - action: run
+    chroot: true
+    script: scripts/crush.sh {{ $crush_image_options }}
+
+{{ if $extra_files_remove }}
+  - action: run
+    description: remove extra files
+    chroot: true
+    command: |
+      for exp in {{ $extra_files_remove }}; do
+        for f in $(find . -name "$exp"); do
+          rm -rf "$f"
+        done
+      done
+{{ end }}
+
+  - action: run
+    description: Create cpio archive
+    chroot: false
+    command: cd ${ROOTDIR} ; find -H  |  cpio -H newc -v -o | gzip -c - > ${ARTIFACTDIR}/{{ $basename -}}/rootfs.cpio.gz

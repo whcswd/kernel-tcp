@@ -1,0 +1,22 @@
+{%- extends 'base/host-tools.jinja2' %}
+
+{%- block packages %}
+{{ super() }}
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    software-properties-common \
+    gnupg2
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    binutils-aarch64-linux-gnu \
+    binutils-arm-linux-gnueabihf \
+    binutils-riscv64-linux-gnu \
+    binutils
+
+# 32-bit support for host tools and kselftest
+RUN apt-get update && apt-get install --no-install-recommends -y \
+   gcc-multilib \
+   libc6-i386 \
+   libc6-dev-i386
+
+RUN apt-get autoremove -y gcc
+{%- endblock %}

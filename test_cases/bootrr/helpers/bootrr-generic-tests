@@ -1,0 +1,7 @@
+#!/bin/sh
+
+assert_file_is_empty deferred-probe-empty /sys/kernel/debug/devices_deferred
+
+assert_cpu_bringup all-cpus-are-online
+
+assert_tpm_bringup tpm-chip-is-online

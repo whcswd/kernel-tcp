@@ -1,0 +1,26 @@
+#!/bin/sh
+
+assert_driver_present pwm-fan-driver-present pwm-fan
+assert_device_present pwm-fan-probed pwm-fan pwm-fan
+
+assert_driver_present asoc-simple-card-driver-present asoc-simple-card
+assert_device_present asoc-simple-card-probed asoc-simple-card sound
+
+assert_driver_present asoc-simple-card-driver-present asoc-simple-card
+assert_device_present asoc-simple-card-probed asoc-simple-card sound
+
+assert_driver_present spi-nor-driver-present spi-nor
+assert_device_present spi-nor-probed spi-nor spi1.0
+
+assert_driver_present at24-driver-present at24
+assert_device_present at24-probed at24 1-0057
+
+assert_driver_present wm8904-driver-present wm8904
+assert_device_present wm8904-probed wm8904 2-001a
+
+assert_driver_present fsl-sai-driver-present fsl-sai
+assert_device_present fsl-sai-sai5-probed fsl-sai f140000.*
+assert_device_present fsl-sai-sai6-probed fsl-sai f150000.*
+
+assert_driver_present fsl-sai-clk-driver-present fsl-sai-clk
+assert_device_present fsl-sai-clk-sai4-probed fsl-sai-clk f130080.*

@@ -1,0 +1,61 @@
+{
+    "description": "JSON file to be used to parse KMS documentation",
+    "name": "Display and KMS Tests for Intel i915 and Xe Drivers",
+    "drivers": [ "xe", "i915" ],
+    "files": [ "../chamelium/kms_*.c", "../kms_*.c", "../testdisplay.c", "kms_*.c" ],
+    "exclude_files": [ "../chamelium/kms_chamelium_helper.c", "../kms_color_helper.c",
+                       "kms_dsc_helper.c" ],
+    "fields": {
+        "Category": {
+            "_properties_": {
+                "description": "Contains the major group for the tested functionality 'Display'"
+            },
+            "Mega feature": {
+                "_properties_": {
+                    "description": "Contains the mega feature for end to end use case, e.g. the 'PSR' feature."
+                },
+                "Functionality": {
+                    "_properties_": {
+                        "description": "Groups tests on buckets containg more detailed functionality"
+                    }
+                }
+            },
+            "Run type": {
+                "_properties_": {
+                    "description": "Defines what category of testlist it belongs",
+                    "update-from-file": {
+                        "append-value-if-not-excluded": "Xe FULL, i915 FULL",
+                        "exclude-type": "regex-ignorecase",
+                        "include": [
+                            { "i915 BAT": "../intel-ci/fast-feedback.testlist" },
+                            { "i915 BAT chamelium": "../intel-ci/fast-feedback-chamelium-only.testlist" },
+                            { "i915 chamelium": "../intel-ci/chamelium-only.testlist" },
+
+                            { "Xe BAT": "../intel-ci/xe-fast-feedback.testlist" },
+                            { "Xe BAT chamelium": "../intel-ci/xe-fast-feedback-chamelium-only.testlist" }
+                        ],
+                        "exclude": [
+                            { "i915 BAT, i915 BAT chamelium, i915 chamelium, i915 FULL": "../intel-ci/blacklist.txt" },
+                            { "Xe BAT, Xe BAT chamelium, Xe FULL": "../intel-ci/xe.blocklist.txt" }
+                        ]
+                    }
+                }
+            }
+        },
+        "Driver requirement": {
+            "_properties_": {
+                "description": "Describes any Driver specific requrirement, like i915/xe."
+            }
+        },
+        "Test category": {
+            "_properties_": {
+                "description": "Defines the test category. Usually used at subtest level."
+            }
+        },
+        "Description" : {
+            "_properties_": {
+                "description": "Provides a description for the test/subtest."
+            }
+        }
+    }
+}

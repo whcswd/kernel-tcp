@@ -1,0 +1,107 @@
+#!/bin/sh
+
+assert_driver_present syscon-reboot-driver-present syscon-reboot
+assert_device_present syscon-reboot-probed syscon-reboot reboot
+
+assert_driver_present armv8-pmu-driver-present armv8-pmu
+assert_device_present armv8-pmu-probed armv8-pmu pmu
+
+assert_driver_present imx-i2c-driver-present imx-i2c
+assert_device_present imx-i2c-i2c0-probed imx-i2c 2000000.*
+assert_device_present imx-i2c-i2c3-probed imx-i2c 2030000.*
+assert_device_present imx-i2c-i2c3-probed imx-i2c 2040000.*
+
+assert_driver_present nxp-fspi-driver-present nxp-fspi
+assert_device_present nxp-fspi-probed nxp-fspi 20c0000.*
+
+assert_driver_present fsl-dspi-driver-present fsl-dspi
+assert_device_present fsl-dspi-dspi2-probed fsl-dspi 2120000.*
+
+assert_driver_present sdhci-esdhc-driver-present sdhci-esdhc
+assert_device_present sdhci-esdhc-sd-probed sdhci-esdhc 2140000.*
+assert_device_present sdhci-esdhc-mmc-probed sdhci-esdhc 2150000.*
+
+assert_driver_present of_serial-driver-present of_serial
+assert_device_present of_serial-uart0-probed of_serial 21c0500.*
+assert_device_present of_serial-uart1-probed of_serial 21c0600.*
+
+assert_driver_present fsl-lpuart-driver-present fsl-lpuart
+assert_device_present fsl-lpuart-uart0-probed fsl-lpuart 2270000.*
+
+assert_driver_present fsl-edma-driver-present fsl-edma
+assert_device_present fsl-edma-probed fsl-edma 22c0000.*
+
+assert_driver_present gpio-mpc8xxx-driver-present gpio-mpc8xxx
+assert_device_present gpio-mpc8xxx-gpio1-probed gpio-mpc8xxx 2300000.*
+assert_device_present gpio-mpc8xxx-gpio2-probed gpio-mpc8xxx 2310000.*
+
+assert_driver_present dwc3-driver-present dwc3
+assert_device_present dwc3-usb0-probed dwc3 3100000.*
+assert_device_present dwc3-usb1-probed dwc3 3110000.*
+
+assert_driver_present layerscape-pcie-driver-present layerscape-pcie
+assert_device_present layerscape-pcie-usb0-probed layerscape-pcie 3400000.*
+assert_device_present layerscape-pcie-usb1-probed layerscape-pcie 3500000.*
+
+assert_driver_present arm-smmu-driver-present arm-smmu
+assert_device_present arm-smmu-probed arm-smmu 5000000.*
+
+assert_driver_present caam-driver-present caam
+assert_device_present caam-probed caam 8000000.*
+
+assert_driver_present caam_jr-driver-present caam_jr
+assert_device_present caam_jr-jr0-probed caam_jr 8010000.*
+assert_device_present caam_jr-jr1-probed caam_jr 8020000.*
+assert_device_present caam_jr-jr2-probed caam_jr 8030000.*
+assert_device_present caam_jr-jr3-probed caam_jr 8040000.*
+
+assert_driver_present sp805-wdt-driver-present sp805-wdt
+assert_device_present sp805-wdt-watchdog0-probed sp805-wdt c000000.*
+assert_device_present sp805-wdt-watchdog1-probed sp805-wdt c010000.*
+
+assert_driver_present qoriq_thermal-driver-present qoriq_thermal
+assert_device_present qoriq_thermal-probed qoriq_thermal 1f80000.*
+
+assert_driver_present pci-host-generic-driver-present pci-host-generic
+assert_device_present pci-host-generic-probed pci-host-generic 1f0000000.*
+
+assert_driver_present rcpm-driver-present rcpm
+assert_device_present rcpm-probed rcpm 1e34040.*
+
+assert_driver_present ftm-alarm-driver-present ftm-alarm
+assert_device_present ftm-alarm-probed ftm-alarm 2800000.*
+
+assert_driver_present simple-mfd-i2c-driver-present simple-mfd-i2c
+assert_device_present simple-mfd-i2c-probed simple-mfd-i2c 0-004a
+
+assert_driver_present sl28cpld-wdt-driver-present sl28cpld-wdt
+assert_device_present sl28cpld-wdt-probed sl28cpld-wdt 2000000.*:*@4a:*@4
+
+assert_driver_present sl28cpld-fan-driver-present sl28cpld-fan
+assert_device_present sl28cpld-fan-probed sl28cpld-fan 2000000.*:*@4a:*@b
+
+assert_driver_present sl28cpld-pwm-driver-present sl28cpld-pwm
+assert_device_present sl28cpld-pwm0-probed sl28cpld-pwm 2000000.*:*@4a:*@c
+assert_device_present sl28cpld-pwm1-probed sl28cpld-pwm 2000000.*:*@4a:*@e
+
+assert_driver_present sl28cpld-gpio-driver-present sl28cpld-gpio
+assert_device_present sl28cpld-gpio0-probed sl28cpld-gpio 2000000.*:*d@4a:*@10
+assert_device_present sl28cpld-gpio1-probed sl28cpld-gpio 2000000.*:*d@4a:*@15
+assert_device_present sl28cpld-gpio2-probed sl28cpld-gpio 2000000.*:*d@4a:*@1a
+assert_device_present sl28cpld-gpio3-probed sl28cpld-gpio 2000000.*:*d@4a:*@1b
+
+assert_driver_present sl28cpld-intc-driver-present sl28cpld-intc
+assert_device_present sl28cpld-intc-probed sl28cpld-intc 2000000.*:*@4a:*@1c
+
+assert_driver_present spi-nor-driver-present spi-nor
+assert_device_present spi-nor-probed spi-nor spi0.0
+
+assert_driver_present at24-driver-present at24
+assert_device_present at24-eeprom0-probed at24 0-0050
+assert_device_present at24-eeprom1-probed at24 2-0050
+
+assert_driver_present rtc-rv8803-driver-present rtc-rv8803
+assert_device_present rtc-rv8803-rtc-probed rtc-rv8803 0-0032
+
+assert_driver_present layerscape-sfp-driver-present layerscape_sfp
+assert_device_present layerscape-sfp-probed layerscape_sfp 1e80000.*

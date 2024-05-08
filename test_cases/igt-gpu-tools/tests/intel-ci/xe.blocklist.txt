@@ -1,0 +1,82 @@
+###############################################
+igt@meta_test(@.*)?
+##################################################################
+# Non-Intel driver tests
+##################################################################
+igt@amdgpu.*
+igt@msm_.*
+igt@nouveau_.*
+igt@panfrost_.*
+igt@v3d.*
+igt@vc4.*
+igt@vgem_.*
+igt@vmwgfx.*
+##################################################################
+# Exclude all i915 tests
+##################################################################
+igt@api.*
+igt@gem.*
+igt@gen.*
+igt@i915_.*
+igt@perf.*
+igt@sysfs_.*
+##################################################################
+# Exclude mock DRM KUnit from IGT, as those already run at build
+# time on Intel CI
+#################################################################
+igt@dmabuf.*
+igt@drm_buddy
+igt@drm_mm
+igt@kms_selftest.*
+##################################################################
+# Exclude all other non-Xe tests
+##################################################################
+igt@core_(?!hotunplug@unbind-rebind).*
+igt@debugfs.*
+igt@device_reset
+igt@drm_fdinfo
+igt@drm_read
+igt@dumb.*
+igt@fbdev
+igt@prime_.*
+igt@sw_sync
+igt@syncobj_.*
+igt@template
+igt@tools_test
+##################################################################
+# KMS: Pipe E to Pipe P are not available on Intel hardware,
+# hence can't use more than 4 displays.
+##################################################################
+igt@.*@.*pipe-[e-pE-P]($|-.*)
+igt@kms_bw@.*-([5-9]|1[0-6])-displays-.*
+##################################################################
+# KMS: Tests specific to i915 driver
+##################################################################
+igt@kms_addfb_basic@addfb25-x-tiled-mismatch-legacy
+igt@kms_addfb_basic@basic-y-tiled-legacy
+igt@kms_addfb_basic@bo-too-small-due-to-tiling
+igt@kms_addfb_basic@clobberred-modifier
+igt@kms_addfb_basic@.*framebuffer-vs-set-tiling
+igt@kms_addfb_basic@tile-pitch-mismatch
+igt@kms_busy@.*
+igt@kms_draw_crc@draw-method-(mmap-cpu|mmap-gtt|pwrite)
+igt@kms_fence_pin_leak
+igt@kms_flip@.*flip-vs-fences.*
+igt@kms_force_connector_basic@force-load-detect
+igt@kms_frontbuffer_tracking@.*-(cpu|gtt|pwrite)
+igt@kms_legacy_colorkey@.*
+igt@kms_pipe_b_c_ivb@.*
+igt@kms_psr@.*-mmap-(cpu|gtt)
+igt@kms_pwrite_crc
+igt@kms_rotation_crc@exhaust-fences
+igt@kms_pm_lpsp@screens-disabled
+igt@kms_pm_rpm@(fences|fences-dpms|pm-caching|pm-tiling)
+##################################################################
+# KMS: Yet to add/missing XE support
+##################################################################
+igt@kms_prime@.*
+##################################################################
+# KMS: Non-Intel tests
+##################################################################
+igt@kms_cursor_legacy@modeset-atomic-cursor-hotspot
+##################################################################

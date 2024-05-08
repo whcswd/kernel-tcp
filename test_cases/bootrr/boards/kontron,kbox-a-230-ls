@@ -1,0 +1,13 @@
+#!/bin/sh
+
+assert_driver_present fsl_enetc-driver-present fsl_enetc
+assert_device_present fsl_enetc-enetc2-probed fsl_enetc 0000:00:00.2
+
+assert_driver_present mscc_felix-driver-present mscc_felix
+assert_device_present mscc_felix-probed mscc_felix 0000:00:00.5
+
+assert_driver_present leds-gpio-driver-present leds-gpio
+assert_device_present leds-gpio-probed leds-gpio leds
+
+assert_driver_present at24-driver-present at24
+assert_device_present at24-probed at24 1-0057

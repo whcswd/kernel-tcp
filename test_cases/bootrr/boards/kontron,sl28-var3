@@ -1,0 +1,7 @@
+#!/bin/sh
+
+assert_driver_present fsl_enetc-driver-present fsl_enetc
+assert_device_present fsl_enetc-enetc0-probed fsl_enetc 0000:00:00.0
+
+assert_driver_present fsl_enetc_mdio-driver-present fsl_enetc_mdio
+assert_device_present fsl_enetc_mdio-probed fsl_enetc_mdio 0000:00:00.3

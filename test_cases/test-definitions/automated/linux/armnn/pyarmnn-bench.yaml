@@ -1,0 +1,25 @@
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: pyarmnn-benchmark
+    description: "Part of ml-bench, pyarmnn-bench testing validity of pyarmnn pip wheels."
+    maintainer:
+        - theodore.grey@linaro.org
+    os:
+        - debian
+    scope:
+        - functional
+    devices:
+        - synquacer
+        - dragonboard-845c
+        - hi960-hikey
+        - stm32mp1
+params:
+    ARMNN_TARBALL: 'https://snapshots.linaro.org/components/armnn/latest/armnn.tar.xz'
+    TEST_DIR: '/usr/local/bin'
+    ARMNN_TESTS: false
+    PYARMNN: true
+    SKIP_INSTALL: false
+run:
+    steps:
+        - cd ./automated/linux/armnn/
+        - ./armnn.sh -s "${SKIP_INSTALL}" -t "${ARMNN_TESTS}" -p "$PYARMNN}" -a "${ARMNN_TARBALL}" -d "{TEST_DIR}"

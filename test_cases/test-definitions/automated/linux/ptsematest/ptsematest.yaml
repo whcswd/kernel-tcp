@@ -1,0 +1,46 @@
+metadata:
+    name: pmsematest
+    format: "Lava-Test Test Definition 1.0"
+    description: "ptsematest starts threads that are synchronized via
+        pthread_mutex_unlock()/pthread_mutex_lock() and measures the latency
+        between releasing and getting the lock."
+    maintainer:
+        - Daniel Wagner <wagi@monom.org>
+    os:
+        - debian
+        - ubuntu
+        - centos
+        - fedora
+        - openembedded
+    scope:
+        - performance
+        - preempt-rt
+    environment:
+        - lava-test-shell
+    devices:
+        - hi6220-hikey
+        - apq8016-sbc
+        - mustang
+        - moonshot
+        - thunderX
+        - d03
+        - d05
+
+params:
+    # Execute ptsematest for given time
+    DURATION: "5m"
+    # Background workload to be run during the meassurement
+    BACKGROUND_CMD: ""
+    # Specify url and token for publishing artifacts.
+    # For safety reasons, please set 'ARTIFACTORIAL_TOKEN' variable in job definition with
+    # 'secrets' dictionary, and set job visibility to personal or group.
+    # Refer to https://validation.linaro.org/static/docs/v2/publishing-artifacts.html
+    ARTIFACTORIAL_URL: "https://archive.validation.linaro.org/artifacts/team/qa/"
+    ARTIFACTORIAL_TOKEN: ""
+
+run:
+    steps:
+        - cd ./automated/linux/ptsematest/
+        - ./ptsematest.sh -D "${DURATION}" -w "${BACKGROUND_CMD}"
+        - ../../utils/upload-to-artifactorial.sh -a "output/ptsematest.json" -u "${ARTIFACTORIAL_URL}" -t "${ARTIFACTORIAL_TOKEN}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

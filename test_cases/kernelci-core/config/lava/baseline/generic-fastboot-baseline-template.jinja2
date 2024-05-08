@@ -1,0 +1,9 @@
+{% extends 'boot-fastboot/generic-fastboot-boot-template.jinja2' %}
+{% block actions %}
+{{ super () }}
+
+{% set test_namespace = "target" %}
+
+{% include 'baseline/baseline.jinja2' %}
+
+{% endblock %}

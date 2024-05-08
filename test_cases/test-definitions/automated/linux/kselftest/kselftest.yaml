@@ -1,0 +1,64 @@
+metadata:
+    name: kselftest
+    format: "Lava-Test Test Definition 1.0"
+    description: "Linux kernel self test"
+    maintainer:
+        - naresh.kamboju@linaro.org
+    os:
+        - debian
+        - ubuntu
+        - fedora
+        - centos
+    scope:
+        - functional
+    devices:
+        - all
+
+params:
+    # List of tests to run
+    # TST_CMDFILES: bpf ipc net timers vm
+    TST_CMDFILES: ""
+
+    # single test case to run
+    # TST_CASENAME: cpu-hotplug:cpu-on-off-test.sh
+    TST_CASENAME: ""
+
+    # Specify Linux kernel self test pre-build tarball name from below location
+    # http://testdata.validation.linaro.org/tests/kselftest/
+    # TESTPROG: kselftest_aarch64.tar.gz
+    TESTPROG: kselftest_armhf.tar.gz
+    SKIP_INSTALL: "false"
+    # List of known unsupported test cases to be skipped
+    SKIPLIST: ""
+    # TESTPROG_URL: "http://testdata.validation.linaro.org/tests/kselftest/kselftest_aarch64.tar.gz"
+    TESTPROG_URL: ""
+    KSELFTEST_PATH: "/opt/kselftests/mainline/"
+
+    # SKIPFILE can be a filename from dir ./automated/linux/ltp/, an http URL,
+    # or a skipgen style yaml file.
+    # Examples:
+    #   SKIPFILE: "skipfile-lsk-juno" # is a known file present in
+    #                                 # dir ./automated/linux/ltp/
+    #   SKIPFILE: "http://people.linaro.org/~naresh.kamboju/skipfile"
+    #   SKIPFILE: "skipfile-lkft.yaml" # yaml file that will be parsed with
+    #                                  # skipgen. Must use "yaml" extention.
+    # NOTE: busybox wget may not work with https link so prefer to use http
+    SKIPFILE: ""
+
+    # BOARD, BRANCH, and ENVIRONMENT may be specified and may be used when
+    # generating a skipfile using a yaml skipfile and skipgen.
+    BOARD: ""
+    BRANCH: ""
+    ENVIRONMENT: ""
+
+    # Number of shards that will be done, default 1 which is the same as no sharding.
+    SHARD_NUMBER: 1
+
+    # Which bucket to run, default '1' which is the same as no sharding, run it as LTP upstream decides.
+    SHARD_INDEX: 1
+
+run:
+    steps:
+        - cd ./automated/linux/kselftest/
+        - ./kselftest.sh -c "${TST_CMDFILES}" -T "${TST_CASENAME}" -t "${TESTPROG}" -s "${SKIP_INSTALL}" -u "${TESTPROG_URL}" -L "${SKIPLIST}" -S "${SKIPFILE}" -b "${BOARD}" -g "${BRANCH}" -e "${ENVIRONMENT}" -p "${KSELFTEST_PATH}" -n "${SHARD_NUMBER}" -i "${SHARD_INDEX}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

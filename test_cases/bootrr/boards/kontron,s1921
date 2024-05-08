@@ -1,0 +1,46 @@
+#!/bin/sh
+
+assert_driver_present at91-xdmac-driver-present at_xdmac
+assert_device_present at91-xdmac-probed at_xdmac e0068000.*
+
+assert_driver_present at91_usart_mode-driver-present at91_usart_mode
+assert_device_present at91_usart_mode-usart0-probed at91_usart_mode e0040200.*
+
+assert_driver_present atmel-trng-driver-present atmel-trng
+assert_device_present atmel-trng-probed atmel-trng e0048000.*
+
+assert_driver_present atmel_aes-driver-present atmel_aes
+assert_device_present atmel_aes-probed atmel_aes e004c000.*
+
+assert_driver_present atmel_sha-driver-present atmel_sha
+assert_device_present atmel_sha-probed atmel_sha e006c000.*
+
+assert_driver_present atmel_spi-driver-present atmel_spi
+assert_device_present atmel_spi-probed atmel_spi e0064400.*
+
+assert_driver_present atmel_flexcom-driver-present atmel_flexcom
+assert_device_present atmel_flexcom-flecom0-probed atmel_flexcom e0040000.*
+
+assert_driver_present dw_wdt-driver-present dw_wdt
+assert_device_present dw_wdt-probed dw_wdt e0090000.*
+
+assert_driver_present lan966x-clk-driver-present lan966x-clk
+assert_device_present lan966x-clk-probed lan966x-clk e00c00a8.*
+
+assert_driver_present pinctrl-microchip-sgpio-driver-present pinctrl-microchip-sgpio
+assert_device_present pinctrl-microchip-sgpio-probed pinctrl-microchip-sgpio e2004190.*
+
+assert_driver_present pinctrl-ocelot-driver-present pinctrl-ocelot
+assert_device_present pinctrl-ocelot-probed pinctrl-ocelot e2004064.*
+
+assert_driver_present restart-gpio-driver-present restart-gpio
+assert_device_present restart-gpio-probed restart-gpio gpio-restart
+
+assert_driver_present sparx5-switch-reset-driver-present sparx5-switch-reset
+assert_device_present sparx5-switch-reset-probed sparx5-switch-reset e200400c.*
+
+assert_driver_present lan966x-serdes-driver-present microchip,lan966x-serdes
+assert_device_present lan966x-serdes-probed microchip,lan966x-serdes e202c000.*
+
+assert_driver_present lan966x-hwmon-driver-present lan966x-hwmon
+assert_device_present lan966x-hwmon-probed lan966x-hwmon e2010180.*

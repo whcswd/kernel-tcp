@@ -1,0 +1,82 @@
+#!/usr/bin/env bash
+
+if [ -z "$KUT_STANDALONE" ]; then
+	if [ ! -f config.mak ]; then
+		echo "run ./configure && make first. See ./configure -h"
+		exit 2
+	fi
+	source config.mak
+	source scripts/arch-run.bash
+fi
+processor="$PROCESSOR"
+
+if [ "$QEMU" ] && [ -z "$ACCEL" ] &&
+   [ "$HOST" = "aarch64" ] && [ "$ARCH" = "arm" ] &&
+   [ "$(basename $QEMU)" = "qemu-system-arm" ]; then
+	ACCEL="tcg"
+fi
+
+set_qemu_accelerator || exit $?
+if [ "$ACCEL" = "kvm" ]; then
+	QEMU_ARCH=$HOST
+fi
+
+qemu=$(search_qemu_binary) ||
+	exit $?
+
+if ! $qemu -machine '?' | grep -q 'ARM Virtual Machine'; then
+	echo "$qemu doesn't support mach-virt ('-machine virt'). Exiting."
+	exit 2
+fi
+
+M='-machine virt'
+
+if [ "$ACCEL" = "kvm" ]; then
+	if $qemu $M,\? | grep -q gic-version; then
+		M+=',gic-version=host'
+	fi
+fi
+
+if [ "$ACCEL" = "kvm" ] || [ "$ACCEL" = "hvf" ]; then
+	if [ "$HOST" = "aarch64" ] || [ "$HOST" = "arm" ]; then
+		processor="host"
+		if [ "$ARCH" = "arm" ] && [ "$HOST" = "aarch64" ]; then
+			processor+=",aarch64=off"
+		fi
+	fi
+fi
+
+if [ "$ARCH" = "arm" ]; then
+	M+=",highmem=off"
+fi
+
+if ! $qemu $M -device '?' | grep -q virtconsole; then
+	echo "$qemu doesn't support virtio-console for chr-testdev. Exiting."
+	exit 2
+fi
+
+if ! $qemu $M -chardev '?' | grep -q testdev; then
+	echo "$qemu doesn't support chr-testdev. Exiting."
+	exit 2
+fi
+
+if [ "$EFI_RUN" != "y" ]; then
+	chr_testdev='-device virtio-serial-device'
+	chr_testdev+=' -device virtconsole,chardev=ctd -chardev testdev,id=ctd'
+fi
+
+pci_testdev=
+if $qemu $M -device '?' | grep -q pci-testdev; then
+	pci_testdev="-device pci-testdev"
+fi
+
+A="-accel $ACCEL$ACCEL_PROPS"
+command="$qemu -nodefaults $M $A -cpu $processor $chr_testdev $pci_testdev"
+command+=" -display none -serial stdio"
+command="$(migration_cmd) $(timeout_cmd) $command"
+
+if [ "$EFI_RUN" = "y" ]; then
+	ENVIRON_DEFAULT=n run_qemu_status $command "$@"
+else
+	run_qemu $command -kernel "$@"
+fi

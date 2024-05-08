@@ -1,0 +1,53 @@
+#!/bin/sh
+
+assert_driver_present imx-i2c-driver-present imx-i2c
+assert_device_present imx-i2c-i2c0-probed imx-i2c 30a20000.*
+assert_device_present imx-i2c-i2c3-probed imx-i2c 30a50000.*
+
+assert_driver_present imx-uart-driver-present imx-uart
+assert_device_present imx-uart-uart0-probed imx-uart 30860000.*
+assert_device_present imx-uart-uart1-probed imx-uart 30880000.*
+assert_device_present imx-uart-uart2-probed imx-uart 30890000.*
+
+assert_driver_present imx2-wdt-driver-present imx2-wdt
+assert_device_present imx2-wdt-watchdog0-probed imx2-wdt 30280000.*
+
+assert_driver_present imx-sdma-driver-present imx-sdma
+assert_device_present imx-sdma-0-probed imx-sdma 302b0000.*
+assert_device_present imx-sdma-1-probed imx-sdma 302c0000.*
+assert_device_present imx-sdma-2-probed imx-sdma 30bd0000.*
+
+assert_driver_present imx8mm-pinctrl-driver-present imx8mm-pinctrl
+assert_device_present imx8mm-pinctrl-0-probed imx8mm-pinctrl 30330000.*
+
+assert_driver_present imx8mm-ccm-driver-present imx8mm-ccm
+assert_device_present imx8mm-ccm-0-probed imx8mm-ccm 30380000.*
+
+assert_driver_present imx_ocotp-driver-present imx_ocotp
+assert_device_present imx_ocotp-0-probed imx_ocotp 30350000.*
+
+assert_driver_present sdhci-esdhc-imx-driver-present sdhci-esdhc-imx
+assert_device_present sdhci-esdhc-imx-mmc0-probed sdhci-esdhc-imx 30b40000.*
+assert_device_present sdhci-esdhc-imx-mmc1-probed sdhci-esdhc-imx 30b50000.*
+
+assert_driver_present fec-driver-present fec
+assert_device_present fec-ethernet0-probed fec 30be0000.*
+
+assert_driver_present reset-imx7-driver-present reset_imx7
+assert_device_present reset-imx7-probed reset_imx7 30390000.*
+
+assert_driver_present ci-hdrc-driver-present ci_hdrc
+assert_device_present ci-hdrc-usb0-probed ci_hdrc ci_hdrc.0
+assert_device_present ci-hdrc-usb1-probed ci_hdrc ci_hdrc.1
+
+assert_driver_present usb-smsc95xx-driver-present smsc95xx
+assert_device_present usb-smsc95xx-probed smsc95xx 1-1.1:1.0
+
+assert_driver_present pmic-nxp-pca9450-driver-present nxp-pca9450
+assert_device_present pmic-nxp-pca9450-probed nxp-pca9450 0-0025
+
+assert_driver_present rtc-rv8803-driver-present rtc-rv8803
+assert_device_present rtc-rv8803-rtc-probed rtc-rv8803 3-0032
+
+assert_driver_present spi-nor-driver-present spi-nor
+assert_device_present spi-nor-probed spi-nor spi0.0

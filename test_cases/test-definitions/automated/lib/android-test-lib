@@ -1,0 +1,336 @@
+#!/bin/sh
+
+install_latest_adb() {
+    install_deps "wget zip"
+    wget -S --progress=dot:giga https://dl.google.com/android/repository/platform-tools-latest-linux.zip
+    unzip -q platform-tools-latest-linux.zip
+    export PATH="$PWD/platform-tools:$PATH"
+    which adb
+    adb version
+}
+
+adb_debug_info() {
+    info_msg "Printing USB device info for debugging..."
+    if which lsusb; then
+        find /dev/bus/usb -type c | while read -r device; do
+            # In the 'Cannot open /dev/bus/usb/*' case, print nothing and use that error
+            # message directly. When shell option '-e' enabled in test script, putting
+            # 'lsusb -D <device>' in 'if' block also avoids unexpected test exit.
+            if device_info="$(lsusb -D "${device}" | grep "Device:")"; then
+                echo "$device: $device_info"
+            fi
+        done
+    else
+        info_msg "usbutils not installed, unable to get device information with 'lsusb'."
+        info_msg "Listing 'find /dev/bus/usb' output directly..."
+        # avoid returning 1 when 'find' doesn't work
+        find /dev/bus/usb || true
+    fi
+    info_msg "===== list fastboot devices start ========="
+    fastboot devices
+    info_msg "===== list fastboot devices end ========="
+    info_msg "===== default ANDROID_SERIAL=${ANDROID_SERIAL} ========="
+}
+
+initialize_adb() {
+    adb_debug_info
+    adb start-server
+    timeout 600 adb wait-for-device || error_fatal "Device NOT found!"
+    adb devices
+
+    if [ -z "${ANDROID_SERIAL}" ]; then
+        number="$(adb devices | grep -wc 'device')"
+        if [ "${number}" -gt 1 ]; then
+            error_msg "More than one device or emulator found! Please set ANDROID_SERIAL from test script."
+        elif [ "${number}" -eq 1 ]; then
+            unset ANDROID_SERIAL
+            ANDROID_SERIAL="$(adb get-serialno)"
+        else
+            error_msg "Device NOT found"
+        fi
+    fi
+    export ANDROID_SERIAL
+    info_msg "Default adb device: ${ANDROID_SERIAL}"
+
+    if adb shell echo "Testing adb connectivity"; then
+        info_msg "Connected to device ${ANDROID_SERIAL} successfully"
+    else
+        error_msg "Unable to connect to device ${ANDROID_SERIAL}"
+    fi
+}
+
+adb_root() {
+    if [ "$(adb shell whoami)" = "root" ]; then
+        echo "DUT already has adbd running as root"
+    else
+        adb root || info_msg "adb root timed out"
+        timeout 600 adb wait-for-device || error_fatal "Device NOT found!"
+        adb devices
+        # After adb root, device number within the USB bus changes.
+        adb_debug_info
+    fi
+}
+
+wait_boot_completed() {
+    [ "$#" -ne 1 ] && error_msg "Usage: wait_for_boot_completed timeout_in_seconds"
+    # shellcheck disable=SC2039
+    local timeout="$1"
+    # shellcheck disable=SC2039
+    local end=$(( $(date +%s) + timeout ))
+
+    # shellcheck disable=SC2039
+    local boot_completed=false
+    while [ "$(date +%s)" -lt "$end" ]; do
+        if adb shell getprop sys.boot_completed | grep "1"; then
+            boot_completed=true
+            break
+        else
+            sleep 3
+        fi
+    done
+
+    if "${boot_completed}"; then
+        info_msg "Target booted up completely."
+    else
+        error_msg "wait_boot_completed timed out after ${timeout} seconds"
+    fi
+}
+
+# Print to stdout either IPv4 address, or nothing in case of failure.
+# Return failure code of `ip` or `adb` in case of failure.
+get_ip_address() {
+    [ "$#" -ne 1 ] && error_msg "Usage: get_ip_address timeout_in_seconds"
+    # shellcheck disable=SC2039
+    local timeout_in_seconds="$1"
+    # shellcheck disable=SC2039
+    local ret_val=0
+    # shellcheck disable=SC2039
+    local output
+    output="$(timeout "${timeout_in_seconds}" adb shell ip -o address show scope global up)" \
+        || ret_val=$?
+    # Pass non-zero exit codes of `ip` to the caller.
+    if [ "${ret_val}" -ne 0 ]; then
+        return "${ret_val}"
+    fi
+    # NOTE: The two grep commands filter adb debug messages and unwanted output of the ip command on
+    # Android 6 that does not apply the `scope global up` filter. true at the end drops non-zero
+    # exit codes of grep for empty inputs.
+    echo "${output}" | awk '{print $4}' | awk -F"/" '{print $1}' \
+        | grep -v '127.0.0.1' | grep -v 'rmnet' \
+        | grep -E '([0-9]{1,3}\.){3,3}[0-9]{1,3}' || true
+}
+
+# Wait for the device to be connected to a network, or fail if the timeout has been reached.
+wait_network_connected() {
+    [ "$#" -ne 1 ] && error_msg "Usage: wait_network_connected timeout_in_seconds"
+    # shellcheck disable=SC2039
+    local timeout_in_seconds="$1"
+
+    info_msg "Waiting ${timeout_in_seconds} seconds for the device to get an IP address."
+
+    # shellcheck disable=SC2039
+    local has_ip_address=false
+    # shellcheck disable=SC2039
+    local end
+    end=$(( $(date +%s) + timeout_in_seconds ))
+
+    while [ "$(date +%s)" -lt "$end" ]; do
+        # make variable ip_address available as result of this function
+        ip_address="$(get_ip_address "${timeout_in_seconds}")"
+        if [ "${ip_address}" ]; then
+            has_ip_address=true
+            break
+        fi
+        sleep 3
+    done
+
+    if [ "${has_ip_address}" = true ]; then
+        info_msg "Target has an IP address."
+    else
+        error_msg "wait_network_connected timed out after ${timeout_in_seconds} seconds"
+    fi
+}
+
+wait_homescreen() {
+    [ "$#" -ne 1 ] && error_msg "Usage: wait_homescreen timeout_in_seconds"
+
+    # call disablesuspend.sh if it exists
+    # on some builds, the launcher package might not be com.android.launcher,
+    # in this case we expect the build to have this disablesuspend.sh script
+    # which is used to check the display of homescreen.
+    # if there is not such disablesuspend.sh script, then use the default check
+    if adb_shell_which disablesuspend.sh; then
+        if adb shell /system/bin/disablesuspend.sh; then
+            info_msg "Target booted to homescreen successfully."
+            return
+        fi
+    fi
+
+    # shellcheck disable=SC2039
+    local timeout="$1"
+    # shellcheck disable=SC2039
+    local end=$(( $(date +%s) + timeout ))
+    # shellcheck disable=SC2039
+    local homescreen_displayed=false
+    while [ "$(date +%s)" -lt "$end" ]; do
+        if adb logcat -sd ActivityManager:I | grep "Displayed com.android.launcher"; then
+            homescreen_displayed=true
+            break
+        else
+            sleep 3
+        fi
+    done
+
+    if "${homescreen_displayed}"; then
+        info_msg "Target booted to homescreen successfully."
+    else
+        error_msg "wait_homescreen timed out after ${timeout} seconds"
+    fi
+}
+
+detect_abi() {
+    # "| tr -d '\r'" is needed here, refer to the below issue.
+    # https://code.google.com/p/android/issues/detail?id=2482
+    # shellcheck disable=SC2039
+    local abi
+    abi="$(adb shell uname -m | tr -d '\r')"
+    case $abi in
+      armv7|armv7l|armv7el|armv7lh) abi="armeabi" ;;
+      arm64|armv8|arm64-v8a|aarch64) abi="arm64" ;;
+      *) error_msg "Unknown architecture" ;;
+    esac
+    info_msg "ABI: ${abi}"
+}
+
+# install() push binary or script file to '/system/bin' so that you can run it
+# without absolute/relative path. If '/system' is always read-only(like LCR),
+# please use adb_push() instead to push binary or file to somewhere that 'rw'
+# permission granted, like '/data/local/tmp', and run it from there.
+install() {
+    [ "$#" -ne 1 ] && error_msg "Usage: install <file_path>"
+    # shellcheck disable=SC2039
+    local file_path="$1"
+    # shellcheck disable=SC2039
+    local file_name
+    file_name="$(basename "${file_path}")"
+
+    if adb shell mount | grep system | grep -q ro; then
+        # Remounts the /system partition on the device read-write
+        info_msg "/system partition is read-only, remounting it read-write..."
+        # Because of https://bugs.linaro.org/show_bug.cgi?id=2888, this
+        # function wouldn't work in LAVA v2 LXC until the bug get addressed.
+        adb root
+        adb remount
+    fi
+
+    info_msg "Installing ${file_name}"
+    adb push "${file_path}"  "/system/bin/"
+    adb shell chmod 755  "/system/bin/${file_name}"
+}
+
+adb_push() {
+    [ "$#" -ne 2 ] && error_msg "Usage: adb_push <local_file> <remote_file>"
+    # shellcheck disable=SC2039
+    local local_file="$1"
+    # shellcheck disable=SC2039
+    local remote_file="$2"
+
+    adb shell mkdir -p "${remote_file}"
+    info_msg "Pushing ${local_file} to device ${ANDROID_SERIAL}"
+    adb push "${local_file}" "${remote_file}"
+
+    # Set 755 permission on the folder/file pushed to device.
+    if [ -d "${local_file}" ]; then
+        adb shell chmod -R 755 "${remote_file}"
+    elif [ -f "${local_file}" ]; then
+        adb shell chmod -R 755 "$(echo "${remote_file}" | sed 's|/$||')/$(basename "${local_file}")"
+    fi
+}
+
+adb_pull() {
+    [ "$#" -ne 2 ] && error_msg "Usage: adb_pull <remote_file> <local_file>"
+    # shellcheck disable=SC2039
+    local remote_file="$1"
+    # shellcheck disable=SC2039
+    local local_file="$2"
+
+    info_msg "Pulling ${remote_file} from device ${ANDROID_SERIAL}"
+    adb pull "${remote_file}" "${local_file}"
+}
+
+adb_shell_which() {
+    [ "$#" -ne 1 ] && error_msg "Usage: adb_shell_which <cmd>"
+    # shellcheck disable=SC2039
+    local cmd="$1"
+    # Only latest version adb able to return exit code.
+    # Check if output of which is empty is a more reliable way.
+    # shellcheck disable=SC2039
+    local which_output
+    which_output="$(adb shell "echo which ${cmd} | su")"
+    info_msg "Output of which: *${which_output}*"
+    if [ -n "${which_output}" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
+disable_suspend() {
+    # shellcheck disable=SC2039
+    local value="${1:-true}"
+
+    info_msg "Setting the power stayon feature to ${value}."
+    # unlock the home screen
+    adb shell input keyevent KEYCODE_MENU
+    adb shell svc power stayon "${value}"
+}
+
+parse_common_args() {
+    while getopts ":s:t:" opt; do
+        case "${opt}" in
+            # Specify device serial number when more than one device connected.
+            s)
+                ANDROID_SERIAL="${OPTARG}"
+                ;;
+            # Specify timeout in seconds for wait_boot_completed.
+            t)
+                BOOT_TIMEOUT="${OPTARG}"
+                export BOOT_TIMEOUT
+                ;;
+            *)
+                echo "Usage: $0 [-s <android_serial>] [-t <boot_timeout>]" 1>&2
+                exit 1
+                ;;
+        esac
+    done
+}
+
+# Try to find the WIFI AP info and connect to it
+# depends on WIFI AP information specified by lava job like following:
+# secrets:
+#   AP_SSID: "${AP_SSID}"
+#   AP_KEY: "${AP_KEY}"
+adb_join_wifi() {
+    # shellcheck disable=SC2039
+    local AP_SSID="$1"
+    # shellcheck disable=SC2039
+    local AP_KEY="$2"
+    if [ -z "${AP_SSID}" ] || [ -z "${AP_KEY}" ]; then
+        # Try to find the WIFI AP information specified by the job definition if not specified via command line
+        lava_test_dir="$(find /lava-* -maxdepth 0 -type d -regex '/lava-[0-9]+' 2>/dev/null | sort | tail -1)"
+        if test -f "${lava_test_dir}/secrets"; then
+            # shellcheck disable=SC1090
+            . "${lava_test_dir}/secrets"
+        fi
+    fi
+
+    # Try to connect to wifi if found the WIFI AP information
+    if [ -n "${AP_SSID}" ] && [ -n "${AP_KEY}" ]; then
+        # source files are here:
+        # https://github.com/steinwurf/adb-join-wifi
+        apk_url="http://testdata.linaro.org/apks/wifi/AdbJoinWifi-nodegbug-OMR1-support.apk"
+        wget ${apk_url} -O wifi.apk
+        adb install -r wifi.apk
+        adb shell am start -n com.steinwurf.adbjoinwifi/.MainActivity -e ssid "${AP_SSID}" -e password_type WPA -e password "${AP_KEY}"
+    fi
+}

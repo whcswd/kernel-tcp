@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. bootrr
+
+TEST_CASE_ID="$1"
+DEVICE="$2"
+
+if [ -z "${TEST_CASE_ID}" -o -z "${DEVICE}" ]; then
+	echo "Usage: $0 <test-case-id> <mmc-device>"
+	exit 1
+fi
+
+if [ -L /sys/bus/mmc/devices/${DEVICE} ]; then
+	test_report_exit pass
+fi
+
+test_report_exit fail

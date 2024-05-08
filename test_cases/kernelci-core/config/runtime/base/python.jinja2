@@ -1,0 +1,134 @@
+{# -*- mode: Python -*- -#}
+{# SPDX-License-Identifier: LGPL-2.1-or-later -#}
+
+{% set base_template = 'base/' + runtime + '-python.jinja2' %}
+{%- extends base_template %}
+
+{% block commands %}
+{% block python_imports %}
+import os
+import sys
+import tarfile
+import traceback
+import urllib.parse
+{% endblock %}
+
+{%- block python_thirdparty_imports %}
+import requests
+import yaml
+{%- endblock %}
+
+{%- block python_local_imports %}
+import kernelci.api
+import kernelci.config
+import kernelci.config.storage
+import kernelci.storage
+{%- endblock %}
+
+{%- block python_globals %}
+API_CONFIG_YAML = """
+{{ kci_yaml_dump(api_config) }}"""
+STORAGE_CONFIG_YAML = """
+{{ kci_yaml_dump(storage_config) }}"""
+NODE = {{ node }}
+JOB_NAME = '{{ name }}'
+WORKSPACE = '/tmp/kci'
+{%- endblock %}
+
+{% block python_base_job -%}
+class BaseJob:
+
+    def __init__(self, workspace):
+        self._workspace = workspace
+
+    def _get_api(self, api_config_yaml):
+        api_config = kernelci.config.api.API.load_from_yaml(
+            yaml.safe_load(api_config_yaml), name='api'
+        )
+        if not api_config:
+            raise ValueError("API configuration not found")
+
+        api_token = os.getenv('KCI_API_TOKEN')
+        if not api_token:
+            raise ValueError("KCI_API_TOKEN environment variable not found")
+
+        return kernelci.api.get_api(api_config, api_token)
+
+    def _get_storage(self):
+        storage_config = kernelci.config.storage.StorageFactory.from_yaml(
+            name='storage', config=yaml.safe_load(STORAGE_CONFIG_YAML)
+        )
+        if not storage_config:
+            return None
+        storage_cred = os.getenv('KCI_STORAGE_CREDENTIALS')
+        return kernelci.storage.get_storage(storage_config, storage_cred)
+
+    def _get_source(self, url):
+        resp = requests.get(url, stream=True)
+        resp.raise_for_status()
+        tarball_name = os.path.basename(urllib.parse.urlparse(url).path)
+        base, ext = tarball_name.split('.tar.')
+        with tarfile.open(fileobj=resp.raw, mode=f'r|{ext}') as tarball:
+            tarball.extractall(path=self._workspace)
+        return os.path.join(self._workspace, base)
+
+    def _run(self, src_path):
+        raise NotImplementedError("_run() method required to run job")
+
+    def _submit(self, result, node, api):
+        node = node.copy()
+        node.update({
+            'result': result,
+            'state': 'done',
+        })
+        api.node.update(node)
+        return node
+
+    def run(self, tarball_url):
+        print("Getting kernel source tree...")
+        src_path = self._get_source(tarball_url)
+        print(f"Source directory: {src_path}")
+        print("Running job...")
+        return self._run(src_path)
+
+    def submit(self, result, node, api_config_yaml):
+        api = self._get_api(api_config_yaml)
+        self._submit(result, node, api)
+{% endblock %}
+
+{% block python_job -%}
+class Job(BaseJob):
+    pass
+{% endblock %}
+
+{% block python_main -%}
+def main(args):
+    job = Job({% block python_job_constr %}workspace=WORKSPACE{% endblock %})
+    try:
+        tarball_url = NODE['artifacts'].get('tarball')
+        results = job.run(tarball_url)
+        if NODE and API_CONFIG_YAML:
+            job.submit(results, NODE, API_CONFIG_YAML)
+    except requests.exceptions.HTTPError as ex:
+        print(ex, file=sys.stderr)
+        detail = ex.response.json().get('detail')
+        if detail:
+            print(detail, file=sys.stderr)
+        results = None
+    except Exception:
+        print(traceback.format_exc())
+        results = None
+
+    return results
+
+
+if __name__ == '__main__':
+{%- if always_exit_0 %}
+    main(sys.argv)
+    sys.exit(0)
+{%- else %}
+    results = main(sys.argv)
+    sys.exit(1 if results is None else 0)
+{%- endif %}
+{% endblock %}
+{%- endblock %}

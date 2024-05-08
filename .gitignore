@@ -1,0 +1,19 @@
+*.log
+__pycache__
+.idea
+token-tfidf.json
+cia-filter.pkl
+cia.pkl
+liebes/__pycache__
+liebes/tcp_approach/__pycache__
+.vscode
+*.pkl
+
+*.toml
+!settings.toml
+
+logs/
+*.db
+# local file only
+temp.py
+local.py

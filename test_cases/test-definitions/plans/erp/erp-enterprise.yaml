@@ -1,0 +1,50 @@
+metadata:
+  name: erp-enterprise
+  description: Test plan for EE RPB. Common features across all boards
+  os: Debian
+  devices:
+    - d03
+    - d05
+    - thunderX
+    - moonshot
+    - mustang
+    - overdrive
+  maintainer:
+    - milosz.wasilewski@linaro.org
+    - dan.rue@linaro.org
+    - chase.qi@linaro.org
+  approver:
+    - milosz.wasilewski@linaro.org
+  owner:
+    - martin.stadtler@linaro.org
+  format: Linaro Test Plan v2
+
+tests:
+  automated:
+    - path: automated/linux/docker/docker.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: automated/linux/dsdbench/dsdbench.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: automated/linux/openjdk/openjdk-smoke.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: automated/linux/lamp/lamp.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: automated/linux/lamp/lamp.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: automated/linux/lemp/lemp.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+  manual:
+    - path: manual/generic/linux/openssh-centos.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/generic/linux/openssl-centos.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/enterprise/openstack-ceph.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/enterprise/openstack-ceph.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/enterprise/bigdata-hadoop-terasort.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/enterprise/bigdata-hive.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git
+    - path: manual/enterprise/bigdata-spark-sparkpi.yaml
+      repository: https://git.linaro.org/qa/test-definitions.git

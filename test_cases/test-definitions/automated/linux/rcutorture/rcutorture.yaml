@@ -1,0 +1,36 @@
+metadata:
+    name: rcutorture
+    format: "Lava-Test Test Definition 1.0"
+    description: "RCU or Read-Copy Update Torture test for Linux Kernel. Kernel
+                  config required for this test CONFIG_RCU_TORTURE_TEST=m"
+    maintainer:
+        - milosz.wasilewski@linaro.org
+        - chase.qi@linaro.org
+    os:
+        - ubuntu
+        - debian
+        - centos
+        - fedora
+        - openembedded
+    devices:
+        - d03
+        - d05
+        - juno
+        - beaglebone-black
+        - hi6220-hikey
+        - apq8016-sbc
+        - mustang
+        - moonshot
+        - thunderX
+
+    scope:
+        - functional
+
+params:
+    TORTURE_TIME: 600
+
+run:
+    steps:
+        - cd automated/linux/rcutorture
+        - ./rcutorture.sh -t "${TORTURE_TIME}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

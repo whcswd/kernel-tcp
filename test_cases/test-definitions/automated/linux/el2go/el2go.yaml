@@ -1,0 +1,43 @@
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: el2go-registration
+    description: "Basic test suite EdgeLock2Go integration.
+        The test enables EL2GO registration to the
+        FoundriesFactory. If the device is successfully
+        registered, the test passes. Running the test requires
+        FoundriesFactory with EL2GO integration and a device
+        with SE050 secure element.
+
+        Optionally AWS IoT integration can be tested by setting
+        AWS_ENDPOINT and AWS_CONTAINER variables. It is recommended
+        to use Foundries.io awsiot-optee container with corresponding
+        LmP release. The container sources can be found on github:
+        https://github.com/foundriesio/containers/tree/master/awsiot-optee
+
+        AWS_ENDPOINT is the URL returned by:
+        aws iot describe-endpoint --endpoint-type iot:Data-ATS --query 'endpointAddress' --output text
+
+        It is recommented to reset SE050 secure element after the test.
+        This is done by setting RESET_SE05X to True."
+    maintainer:
+        - milosz.wasilewski@foundries.io
+    os:
+        - openembedded
+    scope:
+        - functional
+    devices:
+        - imx8mm
+        - imx6ull
+
+params:
+    PTOOL: "pkcs11-tool --module /usr/lib/libckteec.so.0.1.0"
+    SLOT_INIT: "False"
+    RESET_SE05X: "True"
+    AWS_ENDPOINT: ""
+    AWS_CONTAINER: ""
+
+run:
+    steps:
+        - cd ./automated/linux/el2go/
+        - ./el2go.sh -s "${SLOT_INIT}" -p "${PTOOL}" -r "${RESET_SE05X}" -e "${AWS_ENDPOINT}" -c "${AWS_CONTAINER}"
+        - ../../utils/send-to-lava.sh ./output/result.txt

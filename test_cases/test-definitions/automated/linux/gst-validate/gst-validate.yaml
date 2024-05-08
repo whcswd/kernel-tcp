@@ -1,0 +1,47 @@
+metadata:
+    format: Lava-Test Test Definition 1.0
+    name: gst-validate
+    description: "A suite of tools to run integration tests for Gstreamer,
+                  For more information: https://gstreamer.freedesktop.org/data/doc/gstreamer/head/gst-validate/html/"
+    maintainer:
+        - anibal.limon@linaro.org
+    os:
+        - openembedded
+    scope:
+        - functional
+    devices:
+        - dragonboard410c
+
+# MAIN_DIR:
+# * Directory where gst-validate will run, needs to contain gst-integration-testsuites,
+#   https://cgit.freedesktop.org/gstreamer/gst-integration-testsuites
+# OPTIONS:
+# * -nd: To execute without display attached required Xvfb
+# * -v: Verbose mode
+# * -j: To execute only one job a time, avoid OOM
+# GST_INTEGRATION_SUITES:
+# * URL with the tarball of Gstreamer integration suites (cases, media),
+#   https://github.com/GStreamer/gst-integration-testsuites
+params:
+    MAIN_DIR: "/gst-validate"
+    OPTIONS: "-nd -v -j 1"
+    GST_INTEGRATION_SUITES: "http://testdata.validation.linaro.org/gst-validate/gst-integration-testsuites_1.12.tar.gz"
+    GST_IGNORE_TESTS_REPO: ""
+    GST_IGNORE_TESTS_BRANCH: "master"
+    GST_IGNORE_TESTS_FILE: ""
+
+run:
+    steps:
+        - . ./automated/lib/sh-test-lib
+        - cd ./automated/linux/gst-validate
+        - wget ${GST_INTEGRATION_SUITES}
+        - tar -xzf $(basename ${GST_INTEGRATION_SUITES}) -C /
+        - IGNORE_FILE=""
+        - if [ ! -z "${GST_IGNORE_TESTS_REPO}" ] && [ ! -z "${GST_IGNORE_TESTS_FILE}" ]; then
+        -     repo_path=${PWD}/$(basename ${GST_IGNORE_TESTS_REPO})
+        -     git clone -b ${GST_IGNORE_TESTS_BRANCH} ${GST_IGNORE_TESTS_REPO} $repo_path
+        -     IGNORE_FILE=${repo_path}/${GST_IGNORE_TESTS_FILE}
+        - fi
+        - gst-validate-launcher -M ${MAIN_DIR} ${OPTIONS} > ./gst-validate-raw.log || true
+        - ./gst_validate_lava_parse.py ./gst-validate-raw.log ${IGNORE_FILE} > ./result.txt
+        - ../../utils/send-to-lava.sh ./result.txt
